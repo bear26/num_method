@@ -48,10 +48,15 @@ public:
     virtual std::vector<std::vector<double>> solve(const Param &param);
 };
 
-class Adams : public Solver
+class ExplicitAdams : public Solver
 {
 public:
     virtual std::vector<std::vector<double>> solve(const Param &param);
 };
 
+class ImplicitAdams : public Solver
+{
+public:
+    virtual std::vector<std::vector<double>> solve(const Param &param);
+};
 #endif //NUM_METHOD_METHOD_H

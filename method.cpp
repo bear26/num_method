@@ -19,11 +19,11 @@ std::vector<std::vector<double>> ExplicitEuler::solve(const Param &param)
     double z = param["z0"];
     const double step = param["step"];
 
-    std::vector<std::vector<double>> ans(3);
+    std::vector<std::vector<double>> ans(3, std::vector<double>((size_t)param["steps"] + 1));
 
-    ans[0].push_back(x);
-    ans[1].push_back(y);
-    ans[2].push_back(z);
+    ans[0][0] = x;
+    ans[1][0] = y;
+    ans[2][0] = z;
 
     for(int i = 0; i < (int)param["steps"]; ++i)
     {
@@ -35,9 +35,9 @@ std::vector<std::vector<double>> ExplicitEuler::solve(const Param &param)
         y = y1;
         x = x1;
 
-        ans[0].push_back(x);
-        ans[1].push_back(y);
-        ans[2].push_back(z);
+        ans[0][i + 1] = x;
+        ans[1][i + 1] = y;
+        ans[2][i + 1] = z;
     }
 
     return ans;
@@ -49,11 +49,12 @@ std::vector<std::vector<double>> ImplicitEuler::solve(const Param &param) {
     double z = param["z0"];
     const double step = param["step"];
 
-    std::vector<std::vector<double>> ans(3);
+    std::vector<std::vector<double>> ans(3, std::vector<double>((size_t)param["steps"] + 1));
 
-    ans[0].push_back(x);
-    ans[1].push_back(y);
-    ans[2].push_back(z);
+    ans[0][0] = x;
+    ans[1][0] = y;
+    ans[2][0] = z;
+
 
     for(int i = 0; i < (int)param["steps"]; ++i)
     {
@@ -69,9 +70,9 @@ std::vector<std::vector<double>> ImplicitEuler::solve(const Param &param) {
         y = y2;
         x = x2;
 
-        ans[0].push_back(x);
-        ans[1].push_back(y);
-        ans[2].push_back(z);
+        ans[0][i + 1] = x;
+        ans[1][i + 1] = y;
+        ans[2][i + 1] = z;
     }
 
     return ans;
@@ -120,34 +121,75 @@ std::vector<std::vector<double>> RungeKutta::solve(const Param &param)
     return ans;
 }
 
-std::vector<std::vector<double>> Adams::solve(const Param &param) {
+std::vector<std::vector<double>> ExplicitAdams::solve(const Param &param) {
     const double step = param["step"];
 
     RungeKutta runge_kutta;
-
     auto ans = runge_kutta.solve(param);
-    double x = ans[0][3];
-    double y = ans[1][3];
-    double z = ans[2][3];
+
+    std::vector<double> ff, gg, hh;
+    for(int i = 0; i <= 3; ++i)
+    {
+        ff.push_back(f(ans[0][i], ans[1][i], ans[2][i], param));
+        gg.push_back(g(ans[0][i], ans[1][i], ans[2][i], param));
+        hh.push_back(h(ans[0][i], ans[1][i], ans[2][i], param));
+    }
 
     for(int i = 3; i < (int)param["steps"] - 1; ++i)
     {
-        double x1 = x + step / 24 * (55 * f(ans[0][i], ans[1][i], ans[2][i], param) - 59 * f(ans[0][i - 1], ans[1][i - 1], ans[2][i - 1], param) + 37 * f(ans[0][i - 2], ans[1][i - 2], ans[2][i - 2], param) - 9 * f(ans[0][i - 3], ans[1][i - 3], ans[2][i - 3], param));
-        double y1 = y + step / 24 * (55 * g(ans[0][i], ans[1][i], ans[2][i], param) - 59 * g(ans[0][i - 1], ans[1][i - 1], ans[2][i - 1], param) + 37 * g(ans[0][i - 2], ans[1][i - 2], ans[2][i - 2], param) - 9 * g(ans[0][i - 3], ans[1][i - 3], ans[2][i - 3], param));
-        double z1 = z + step / 24 * (55 * h(ans[0][i], ans[1][i], ans[2][i], param) - 59 * h(ans[0][i - 1], ans[1][i - 1], ans[2][i - 1], param) + 37 * h(ans[0][i - 2], ans[1][i - 2], ans[2][i - 2], param) - 9 * h(ans[0][i - 3], ans[1][i - 3], ans[2][i - 3], param));
+        ans[0][i + 1] = ans[0][i] + step / 24 * (55 * ff[i] - 59 * ff[i - 1] + 37 * ff[i - 2] - 9 * ff[i - 3]);
+        ans[1][i + 1] = ans[1][i] + step / 24 * (55 * gg[i] - 59 * gg[i - 1] + 37 * gg[i - 2] - 9 * gg[i - 3]);
+        ans[2][i + 1] = ans[2][i] + step / 24 * (55 * hh[i] - 59 * hh[i - 1] + 37 * hh[i - 2] - 9 * hh[i - 3]);
 
-        z = z1;
-        y = y1;
-        x = x1;
+        ff.push_back(f(ans[0][i + 1], ans[1][i + 1], ans[2][i + 1], param));
+        gg.push_back(g(ans[0][i + 1], ans[1][i + 1], ans[2][i + 1], param));
+        hh.push_back(h(ans[0][i + 1], ans[1][i + 1], ans[2][i + 1], param));
 
-        ans[0][i + 1] = x;
-        ans[1][i + 1] = y;
-        ans[2][i + 1] = z;
+        /*ans[0][i + 1] = ans[0][i] + step / 24 * (9 * ff[i + 1] + 19 * ff[i] - 5 * ff[i - 1] + ff[i - 2]);
+        ans[1][i + 1] = ans[1][i] + step / 24 * (9 * gg[i + 1] + 19 * gg[i] - 5 * gg[i - 1] + gg[i - 2]);
+        ans[2][i + 1] = ans[2][i] + step / 24 * (9 * hh[i + 1] + 19 * hh[i] - 5 * hh[i - 1] + hh[i - 2]);
+
+        ff.push_back(f(ans[0][i + 1], ans[1][i + 1], ans[2][i + 1], param));
+        gg.push_back(g(ans[0][i + 1], ans[1][i + 1], ans[2][i + 1], param));
+        hh.push_back(h(ans[0][i + 1], ans[1][i + 1], ans[2][i + 1], param));*/
     }
 
     return ans;
 }
 
 
+std::vector<std::vector<double>> ImplicitAdams::solve(const Param &param) {
+    const double step = param["step"];
 
+    RungeKutta runge_kutta;
+    auto ans = runge_kutta.solve(param);
 
+    std::vector<double> ff, gg, hh;
+    for(int i = 0; i <= 3; ++i)
+    {
+        ff.push_back(f(ans[0][i], ans[1][i], ans[2][i], param));
+        gg.push_back(g(ans[0][i], ans[1][i], ans[2][i], param));
+        hh.push_back(h(ans[0][i], ans[1][i], ans[2][i], param));
+    }
+
+    for(int i = 3; i < (int)param["steps"] - 1; ++i)
+    {
+        ans[0][i + 1] = ans[0][i] + step / 24 * (55 * ff[i] - 59 * ff[i - 1] + 37 * ff[i - 2] - 9 * ff[i - 3]);
+        ans[1][i + 1] = ans[1][i] + step / 24 * (55 * gg[i] - 59 * gg[i - 1] + 37 * gg[i - 2] - 9 * gg[i - 3]);
+        ans[2][i + 1] = ans[2][i] + step / 24 * (55 * hh[i] - 59 * hh[i - 1] + 37 * hh[i - 2] - 9 * hh[i - 3]);
+
+        ff.push_back(f(ans[0][i + 1], ans[1][i + 1], ans[2][i + 1], param));
+        gg.push_back(g(ans[0][i + 1], ans[1][i + 1], ans[2][i + 1], param));
+        hh.push_back(h(ans[0][i + 1], ans[1][i + 1], ans[2][i + 1], param));
+
+        ans[0][i + 1] = ans[0][i] + step / 24 * (9 * ff[i + 1] + 19 * ff[i] - 5 * ff[i - 1] + ff[i - 2]);
+        ans[1][i + 1] = ans[1][i] + step / 24 * (9 * gg[i + 1] + 19 * gg[i] - 5 * gg[i - 1] + gg[i - 2]);
+        ans[2][i + 1] = ans[2][i] + step / 24 * (9 * hh[i + 1] + 19 * hh[i] - 5 * hh[i - 1] + hh[i - 2]);
+
+        ff.push_back(f(ans[0][i + 1], ans[1][i + 1], ans[2][i + 1], param));
+        gg.push_back(g(ans[0][i + 1], ans[1][i + 1], ans[2][i + 1], param));
+        hh.push_back(h(ans[0][i + 1], ans[1][i + 1], ans[2][i + 1], param));
+    }
+
+    return ans;
+}

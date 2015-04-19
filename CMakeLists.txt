@@ -10,9 +10,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fopenmp")
 set(SOURCE_FILES main.cpp)
 add_library(method STATIC method.cpp)
 
-#set(BOOST_DI "/home/yura/program/tools")
-#find_package(BOOST_DI REQUIRED)
-
 ################################BOOST###################################
 find_package(Boost COMPONENTS program_options REQUIRED)
 if(NOT Boost_FOUND)

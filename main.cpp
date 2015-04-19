@@ -1,7 +1,6 @@
 #include <cstdio>
 #include <iostream>
 #include <vector>
-#include <string>
 #include <map>
 #include <set>
 
@@ -10,6 +9,7 @@
 #include <boost/program_options.hpp>
 
 std::string path;
+double max_value;
 
 void write(const std::vector<std::vector<double>> &ans, const Param &param)
 {
@@ -22,6 +22,16 @@ void write(const std::vector<std::vector<double>> &ans, const Param &param)
 
     for(size_t i = 0; i < ans[0].size(); ++i)
     {
+        if (ans[0][i] >= max_value || ans[1][i] >= max_value || ans[2][i] >= max_value)
+        {
+            break;
+        }
+
+        if (i && fabs(ans[0][i] - ans[0][i - 1]) < 1e-9 && fabs(ans[1][i] - ans[1][i - 1]) < 1e-9 && fabs(ans[2][i] - ans[2][i - 1]) < 1e-9)
+        {
+            break;
+        }
+
         fprintf(f_x, "%.9lf %.9lf\n", i * step, ans[0][i]);
         fprintf(f_y, "%.9lf %.9lf\n", i * step, ans[1][i]);
         fprintf(f_z, "%.9lf %.9lf\n", i * step, ans[2][i]);
@@ -46,7 +56,7 @@ int parse(int argc, char *argv[], Param &param)
     int num_m;
     boost::program_options::options_description options;
     options.add_options()("help", "produce help message")
-            ("sigma,S",boost::program_options::value<double>(&sigma)->default_value(10), "sigma value")
+            ("sigma,S",boost::program_options::value<double>(&sigma)->default_value(10), "sigma")
             ("b,B", boost::program_options::value<double>(&b)->default_value(8.0 / 3), "b")
             ("r,R", boost::program_options::value<double>(&r)->required(), "r")
             ("step,s", boost::program_options::value<double>(&step)->required(), "step length")
@@ -54,8 +64,9 @@ int parse(int argc, char *argv[], Param &param)
             ("x0,x", boost::program_options::value<double>(&x0)->required(), "x0")
             ("y0,y", boost::program_options::value<double>(&y0)->required(), "y0")
             ("z0,z", boost::program_options::value<double>(&z0)->required(), "z0")
+            ("max_value,v", boost::program_options::value<double>(&max_value)->default_value(100), "max value")
             ("path,p", boost::program_options::value<std::string>(&path)->required(), "path to output file")
-            ("num_method,m", boost::program_options::value<int>(&num_m)->required(), "0 - explicit Euler\n1 - implicit Euler\n2 - Runge Kutta\n3 - explicit Adams");
+            ("num_method,m", boost::program_options::value<int>(&num_m)->required(), "0 - explicit Euler\n1 - implicit Euler\n2 - Runge Kutta\n3 - explicit Adams\n4 - implicit Adams");
 
     try {
         boost::program_options::variables_map vm;
@@ -86,12 +97,14 @@ int main(int argc, char *argv[]) {
     ExplicitEuler m1;
     ImplicitEuler m2;
     RungeKutta m3;
-    Adams m4;
+    ExplicitAdams m4;
+    ImplicitAdams m5;
 
     methods.push_back(&m1);
     methods.push_back(&m2);
     methods.push_back(&m3);
     methods.push_back(&m4);
+    methods.push_back(&m5);
 
     Param param;
     write(methods[parse(argc, argv, param)]->solve(param), param);
